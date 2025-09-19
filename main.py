@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from typing import Dict, List
+import json
 
 app = FastAPI(
     title="Mi primer api con fastapi",
@@ -34,10 +35,16 @@ movies = [
 def get_movies() -> List[Dict]:
     return movies
 
-@app.get('/movies/{id}', tags=["Get Movie By ID"]) #Ponemos el parametros dentro de {}
-def get_movie_by_id(id: int) -> Dict[str, str]:
+@app.get('/movies/{id}', tags=["Get Movies"]) #tags=["Get Movie By ID"]) #Ponemos el parametros dentro de {}
+def get_movie_by_id(id: int) -> Dict:
     for item in movies:
         if item['id'] == id:
             return item
     else:
         return{"Error": "No se ha encontrado la pelicula"}
+
+
+@app.get('/movies/', tags=["Get Movies"])
+def get_movies_by_category(category: str):# -> List[Dict]:
+
+    return category

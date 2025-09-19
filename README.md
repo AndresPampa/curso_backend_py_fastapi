@@ -15,3 +15,8 @@ Fastapi utiliza pydantic(para validacion de datos), swagger(para docuemntacion),
 3. GET: consultar informacion de un recurso
 4. DELETE: eliminar un recurso
 
+### Query parameters
+
+Es un conjunto de parametros opcionales los cuales son añadidos al final la ruta con el objetivo de definir objetivos en la URL
+Ponemos el ? para definir valores y & para concatenar varios parametros
+Por ejemplo => http://127.0.0.1:4000/movies/?category=crimen
