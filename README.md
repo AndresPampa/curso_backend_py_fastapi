@@ -20,3 +20,8 @@ Fastapi utiliza pydantic(para validacion de datos), swagger(para docuemntacion),
 Es un conjunto de parametros opcionales los cuales son añadidos al final la ruta con el objetivo de definir objetivos en la URL
 Ponemos el ? para definir valores y & para concatenar varios parametros
 Por ejemplo => http://127.0.0.1:4000/movies/?category=crimen
+
+### Pydantic
+
+Es una libreria para Validacion de datos y se utiliza en conjunto con fastapi. La estructura y tipo de datos y se pueden hacer validaciones automaticas.
+Se puede hacer declarativo y basado en modelos. Podemos crear clases de python que actuan como modelo para validacion de nuestros datos. Podemos manipular datos y nos ayuda a hacer el cambio y las validaciones y tambien nos genera la documentacion automatica como fastapi
