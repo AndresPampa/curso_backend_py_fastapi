@@ -30,3 +30,4 @@ Se puede hacer declarativo y basado en modelos. Podemos crear clases de python q
 ### JWT(JSON Web Token)
 
 Header + Payload + Signature(header, payload, secret Key)
+pip install pyjwt  

@@ -1,13 +1,30 @@
-from fastapi import FastAPI, Body, Path, Query, Response
+from fastapi import FastAPI, Body, Path, Query, Response, Request, HTTPException, Depends
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.security import HTTPBearer
 from typing import Dict, List, Any, Optional
 from pydantic import BaseModel, Field
+from user_jwt import create_token, validate_token
+
 
 app = FastAPI(
     title="Mi primer api con fastapi",
     description="Una Api en los primeros pasos",
     version="0.0.1",
 )
+
+class User(BaseModel):
+    email: str
+    password: str
+
+class BearerJWT(HTTPBearer):
+    async def __call__(self, request: Request):
+        auth = await super().__call__(request)
+        data = validate_token(auth.credentials)
+        if data['email'] != "pampa@mail.com":
+            raise HTTPException(status_code=403, detail="Credentials are not valid")
+        
+
+
 
 @app.get('/', tags=["Inicio"]) #el argumento del decorador nos pide como se va a llamar la ruta
 #Primer Approach
@@ -50,11 +67,18 @@ movies = [
     }
 ]
 
-@app.get('/movies', tags=["Get Movies"])
+@app.post('/login', tags=["Authentication"])
+def login(user: User):
+    if user.email == "pampa@mail.com" and user.password == "1234":
+        token:str = create_token(user.dict())
+    return JSONResponse(content=token)
+
+
+@app.get('/movies', tags=["Get Movies"], dependencies=[Depends(BearerJWT())])
 def get_movies() -> JSONResponse: #-> List[Dict]:
     return JSONResponse(content=movies)
 
-@app.get('/movies/{id}', tags=["Get Movies"]) #tags=["Get Movie By ID"]) #Ponemos el parametros dentro de {}
+@app.get('/movies/{id}', tags=["Get Movies"], status_code=200) #tags=["Get Movie By ID"]) #Ponemos el parametros dentro de {}
 def get_movie_by_id(id: int = Path(ge=1, le=100)) -> Dict:
     for item in movies:
         if item['id'] == id:
