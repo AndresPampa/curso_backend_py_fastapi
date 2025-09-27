@@ -31,3 +31,6 @@ Se puede hacer declarativo y basado en modelos. Podemos crear clases de python q
 
 Header + Payload + Signature(header, payload, secret Key)
 pip install pyjwt  
+
+### SQLAlchemy
+pip install sqlalchemy  

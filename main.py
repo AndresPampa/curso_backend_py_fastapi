@@ -4,6 +4,9 @@ from fastapi.security import HTTPBearer
 from typing import Dict, List, Any, Optional
 from pydantic import BaseModel, Field
 from user_jwt import create_token, validate_token
+from bd.database import Session, Engine, Base
+from models.movie import Movie as ModelMovie
+from fastapi.encoders import jsonable_encoder #nos permite convertir a json cualquier objeto de python
 
 
 app = FastAPI(
@@ -12,10 +15,15 @@ app = FastAPI(
     version="0.0.1",
 )
 
+######
+Base.metadata.create_all(bind=Engine) #crea las tablas
+######
+
 class User(BaseModel):
     email: str
     password: str
 
+#Esta clase nos permite cubrir la ruta y validar el token
 class BearerJWT(HTTPBearer):
     async def __call__(self, request: Request):
         auth = await super().__call__(request)
@@ -41,7 +49,7 @@ class Movie(BaseModel):
     overview: str = Field(default='Descripcion de la pelicula', min_length=15, max_length=60)
     year: int = Field(default=2023)
     rating: float = Field(ge=1, le=10)#ge = greater than or equal (mayor o igual que) le = less than or equal (menor o igual que)
-    category: str = Field(default='Categoria de la pelicula', min_length=3, max_length=20)
+    category: str = Field(default='Categoria de la pelicula', min_length=3, max_length=100)
 
     # def to_dict(self):
     #     return {
@@ -73,24 +81,32 @@ def login(user: User):
         token:str = create_token(user.dict())
     return JSONResponse(content=token)
 
-
+#esta ruta depende de BarerJWT como que la cubre y valida el token
 @app.get('/movies', tags=["Get Movies"], dependencies=[Depends(BearerJWT())])
 def get_movies() -> JSONResponse: #-> List[Dict]:
-    return JSONResponse(content=movies)
+    db = Session()
+    data = db.query(ModelMovie).all()
+    return JSONResponse(content=jsonable_encoder(data))
 
 @app.get('/movies/{id}', tags=["Get Movies"], status_code=200) #tags=["Get Movie By ID"]) #Ponemos el parametros dentro de {}
-def get_movie_by_id(id: int = Path(ge=1, le=100)) -> Dict:
-    for item in movies:
-        if item['id'] == id:
-            return item
-    else:
-        return{"Error": "No se ha encontrado la pelicula"}
+def get_movie_by_id(id: int = Path(ge=1, le=100)):
+    db = Session()
+    data = db.query(ModelMovie).filter(ModelMovie.id == id).first()
+    if not data:
+        return JSONResponse(status_code=400, content={"message": "Recurso no encontrado"})
+    return JSONResponse(status_code=201, content=jsonable_encoder(data)) 
 
 
 @app.get('/movies/', tags=["Get Movies"])
 def get_movies_by_category(category: str = Query(min_length=3, max_length=20)) -> str:
+    db = Session()
+    data = db.query(ModelMovie).filter(ModelMovie.category == category).all()
+    
+    if not data:
+        return JSONResponse(status_code=400, content={"message": "Recurso no encontrado"})
+    
+    return JSONResponse(content={"message": "Exito", "data": jsonable_encoder(data)})
 
-    return category
 
 # #Endpoint sin pydantic
 # @app.post('/movies', tags=["Movies"])
@@ -111,8 +127,10 @@ def get_movies_by_category(category: str = Query(min_length=3, max_length=20)) -
 #Endpoint sin pydantic
 @app.post('/movies', tags=["Movies"], status_code=201)
 def create_movie(movie: Movie) -> JSONResponse: #-> Movie:
-    movies.append(movie)
-    print(movies)
+    db = Session()
+    new_movie = ModelMovie(**movie.dict())
+    db.add(new_movie)
+    db.commit()
     # return movie.title
     return JSONResponse(status_code=201 ,content={"message": "Se ha cargado una nueva pelicula correctamente", "movies": movie.dict()})
 
@@ -140,23 +158,31 @@ def create_movie(movie: Movie) -> JSONResponse: #-> Movie:
 #Endpoint con pydantic
 @app.put('/movies/{id}',tags=["Movies"], status_code=200)
 def update_movie(id:int, movie:Movie) -> List[Dict[str, Any]] | None: # o tambien ===> Union[List[Dict[str, Any]], None]
-    for item in movies:
-        if item["id"] == id:
-            item["title"] = movie.title
-            item["overview"] = movie.overview
-            item["year"] = movie.year
-            item["rating"] = movie.rating
-            item["category"] = movie.category
-            return JSONResponse(content={"message": "Se ha actualizado la pelicula correctamente", "movies": movie.to_dict()})
+    db = Session()
+    data = db.query(ModelMovie).filter(ModelMovie.id == id).first()
+    if not data:
+        return JSONResponse(status_code=404, content={"message": "Recurso no encontrado"})
+    
+    data.title = movie.title
+    data.overview = movie.overview
+    data.year = movie.year
+    data.rating = movie.rating
+    data.category = movie.category
+    db.commit()
+
+    return JSONResponse(content={"message": "Se ha actualizado la pelicula correctamente"})
         
-        print("No se ha encontrado la pelicula")
-        return None
 
 @app.delete('/movies/{id}', tags=["Movies"], status_code=200)
 def delete_movies(id: int) -> JSONResponse: #-> List[Dict[str, Any]] | None:
     # print(movies) #como no hay persistencia de datos no hay drama en eliminar la pelicula
-    for item in movies:
-        if item['id'] == id:
-            movies.remove(item)
-            return JSONResponse(content={"message": "Se ha Eliminado la pelicula correctamente", "movies": movies})
+    db = Session()
+    data = db.query(ModelMovie).filter(ModelMovie.id == id).first()
+    if not data:
+        return JSONResponse(status_code=404, content={"message": "Recurso no encontrado"})
+    
+    db.delete(data)
+    db.commit()
+
+    return JSONResponse(content={"message": "Se ha Eliminado la pelicula correctamente", "data": jsonable_encoder(data)})
         

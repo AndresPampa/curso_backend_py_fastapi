@@ -7,5 +7,5 @@ def create_token(data: dict):
     return token
 
 def validate_token(token: str) -> dict:
-    data: dict = jwt.decode(token, key='misecret', algorithms=["HS256"])
+    data: dict = jwt.decode(jwt = token, key='misecret', algorithms=["HS256"])
     return data
