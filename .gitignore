@@ -1,3 +1,6 @@
 .venv
 __pycache__/*
 __pycache__
+
+# con este codigo podrmos eliminar la base de datos si ya la commiteamos --> git rm --cached db.sqlite3
+bd/movies.sqlite
